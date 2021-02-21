@@ -305,5 +305,5 @@ defaultproperties
 	ProtectionOverrides(1)="AS-DesertStorm;A;3;at5"
 	ProtectionOverrides(2)="AS-DesertStorm;A;4;at1"
 	ProtectionOverrides(3)="AS-DesertStorm;D;2;def3"
-	ProtectionOverrides(4)="AS-Bridge*;D;4;PlayerStart"
+	ProtectionOverrides(4)="AS-Bridge*;D;2;PlayerStart"
 }
