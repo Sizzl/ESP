@@ -1,6 +1,19 @@
-//==================================================================//
-// Enhanced Spawn Protection for LeagueAS ©2021 timo@utassault.net  //
-//==================================================================//
+//=====================================================================//
+// Enhanced Spawn Protection for LeagueAS ©2021 timo@utassault.net     //
+//                                                                     //
+// ProtectionOverrides adhere to the following format:                 //
+//                                                                     //
+//   AS-MapName;A|D;X;[optional tag]                                   //
+//                                                                     //
+//   - Where A is attackers or D is defenders                          //
+//   - X is protection in seconds                                      //
+//   - [optional tag] only applies to tagged playerstarts              //
+//          (empty value or * will apply to all PlayerStarts           //
+//            for that team)                                           //
+//                                                                     //
+//   See examples in defaultproperties{} section                       //
+//                                                                     //
+//=====================================================================//
 
 class ESP expands Mutator config;
 
@@ -11,10 +24,11 @@ var int VA, VD, VC, VF;
 
 // Config
 var() config bool bEnabled;
+var() config bool bAlwaysUseDefaults;
 var() config int LogLevel; // 0 = No debug, 1 = Basic debug, 2 = Verbose, 3 = Trace
 var() config int ProtectAttackers;
 var() config int ProtectDefenders;
-var() config string ProtectionOverrides[64]; // AS-MapName;A|D;X;<opt tag> - where A is attackers or D is defenders, X is protection in seconds, and <opt tag> only applies to tagged playerstarts
+var() config string ProtectionOverrides[64]; // 
 
 event PreBeginPlay()
 {
@@ -23,13 +37,16 @@ event PreBeginPlay()
 	{
 		if(Level.Game.IsA('LeagueAssault'))
 		{
-			SaveConfig();
+			if (bAlwaysUseDefaults)
+				StaticSaveConfig();
+			else
+				SaveConfig();
 			if (LogLevel > 0)
 				bDebug = true;
 			PopulateVOs();
 			VF = VF*(1/CheckRate);
 			SetTimer(CheckRate,true);
-			log(AppString@"initialization complete. (Mode = "$String(Level.NetMode)$").");
+			log(AppString@"initialization complete. (Mode = "$String(Level.NetMode)$"; Always Use Defaults:"@bAlwaysUseDefaults$").");
 			Initialized = true;
 		} else {
 			log(AppString@"running, but disabled (not AS gametype).",'ESP');
@@ -68,10 +85,14 @@ function PopulateVOs()
 
 		if (InStr(ProtectionOverrides[i],"*;") > 0)
 		{
+			MapCheck = Left(ProtectionOverrides[i],InStr(ProtectionOverrides[i],"*;"));
+			if (bDebug && LogLevel > 2)
+				log(" - Override "$i$"/63 wildcard detected:"@ProtectionOverrides[i]$", looking for maps beginning with:"@MapCheck,'ESP');
 			// handle partial map name matching
-			MapCheck = Left(ProtectionOverrides[i],InStr(ProtectionOverrides[i],"*;")-2);
 			if (Left(MapName,Len(MapCheck)) ~= MapCheck)
 			{
+				if (bDebug && LogLevel > 1)
+					log("Matched partial map"@MapCheck@"to"@MapName,'ESP');
 				ValidEntry=Mid(ProtectionOverrides[i],(Len(MapCheck)+2));
 			}
 		}
@@ -166,7 +187,7 @@ event Timer()
 				if (VC > VF && LogLevel > 2)
 					log("Qualifying VA entry:"@ValidEntry$", v="$v$",t="$t,'ESP');
 
-				if (Len(t) > 0 && vATag ~= t)
+				if (Len(t) > 0 && vATag ~= t || t=="*")
 				{
 					if (VC > VF && LogLevel > 2)
 						log("Overriding tagged vAFinal:"@vAFinal@"->"@v,'ESP');
@@ -202,17 +223,17 @@ event Timer()
 				}
 				if (VC > VF && LogLevel > 2)
 					log("Qualifying VD entry:"@ValidEntry$", v="$v$",t="$t,'ESP');
-				if (Len(t) > 0 && vDTag ~= t)
+				if (Len(t) > 0 && vDTag ~= t || t=="*")
 				{
 					if (VC > VF && LogLevel > 2)
-						log("Overriding tagged vAFinal:"@vAFinal@"->"@v,'ESP');
+						log("Overriding tagged vDFinal:"@vDFinal@"->"@v,'ESP');
 					vDFinal = v;
 					break; // treat this value as final
 				}
 				else if (Len(t)==0)
 				{
 					if (VC > VF && LogLevel > 2)
-						log("Overriding untagged vAFinal:"@vAFinal@"->"@v,'ESP');
+						log("Overriding untagged vDFinal:"@vDFinal@"->"@v,'ESP');
 					vDFinal = v;
 				}
 				else
@@ -259,6 +280,12 @@ function Mutate(string MutateString, PlayerPawn Sender)
 		Sender.ClientMessage("Current attacker protection:"@cVA$"s");
 		Sender.ClientMessage("Current defender protection:"@cVD$"s");
 	}
+	else if (MutateString ~= "esp refresh")
+	{
+		PopulateVOs();
+		Sender.ClientMessage("Refreshed Override List...");
+		MutateString = "esp";
+	}
 
 	if ( NextMutator != None )
 		NextMutator.Mutate(MutateString, Sender);
@@ -268,12 +295,15 @@ defaultproperties
 {
 	AppString="Enhanced Spawn Protection for LAS140:"
 	bEnabled=true
+	bAlwaysUseDefaults=false
 	LogLevel=0
 	CheckRate=0.5
 	ProtectAttackers=2
 	ProtectDefenders=1
 	VF=4
-	ProtectionOverrides(0)="AS-Bridge;A;4;sp3"
+	ProtectionOverrides(0)="AS-Bridge*;A;4;sp3"
 	ProtectionOverrides(1)="AS-DesertStorm;A;3;at5"
 	ProtectionOverrides(2)="AS-DesertStorm;A;4;at1"
+	ProtectionOverrides(3)="AS-DesertStorm;D;2;def3"
+	ProtectionOverrides(4)="AS-Bridge*;D;4;PlayerStart"
 }
