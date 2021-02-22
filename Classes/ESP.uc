@@ -1,24 +1,24 @@
 //=====================================================================//
-// Enhanced Spawn Protection for LeagueAS ©2021 timo@utassault.net     //
-//                                                                     //
-// ProtectionOverrides adhere to the following format:                 //
-//                                                                     //
-//   AS-MapName;A|D;X;[optional tag]                                   //
-//                                                                     //
-//   - Where A is attackers or D is defenders                          //
-//   - X is protection in seconds                                      //
-//   - [optional tag] only applies to tagged playerstarts              //
-//          (empty value or * will apply to all PlayerStarts           //
-//            for that team)                                           //
-//                                                                     //
-//   See examples in defaultproperties{} section                       //
-//                                                                     //
+// Enhanced Spawn Protection for LeagueAS ©2021 timo@utassault.net		 //
+//																																		 //
+// ProtectionOverrides adhere to the following format:								 //
+//																																		 //
+//	 AS-MapName;A|D;X;[optional tag]																	 //
+//																																		 //
+//	 - Where A is attackers or D is defenders													//
+//	 - X is protection in seconds																			//
+//	 - [optional tag] only applies to tagged playerstarts							//
+//					(empty value or * will apply to all PlayerStarts					 //
+//						for that team)																					 //
+//																																		 //
+//	 See examples in defaultproperties{} section											 //
+//																																		 //
 //=====================================================================//
 
 class ESP expands Mutator config;
 
 var bool Initialized, bDebug;
-var float  CheckRate;
+var float	CheckRate;
 var string AppString, ValidAttackerOverrides[64], ValidDefenderOverrides[64]; 
 var int VA, VD, VC, VF;
 
@@ -301,9 +301,25 @@ defaultproperties
 	ProtectAttackers=2
 	ProtectDefenders=1
 	VF=4
-	ProtectionOverrides(0)="AS-Bridge*;A;4;sp3"
-	ProtectionOverrides(1)="AS-DesertStorm;A;3;at5"
-	ProtectionOverrides(2)="AS-DesertStorm;A;4;at1"
-	ProtectionOverrides(3)="AS-DesertStorm;D;2;def3"
-	ProtectionOverrides(4)="AS-Bridge*;D;2;PlayerStart"
+	// Bridge
+	ProtectionOverrides(0)="AS-Bridge*;D;2;PlayerStart"
+	ProtectionOverrides(1)="AS-Bridge*;A;4;sp2"
+	ProtectionOverrides(2)="AS-Bridge*;A;4;sp3"
+	// DesertStorm
+	ProtectionOverrides(3)="AS-DesertStorm;A;3;at5"
+	ProtectionOverrides(4)="AS-DesertStorm;A;4;at1"
+	ProtectionOverrides(5)="AS-DesertStorm;D;2;def3"
+	// Asthenosphere
+	ProtectionOverrides(6)="AS-Asthenosphere*;A;4;*"
+	ProtectionOverrides(7)="AS-Asthenosphere*;D;2;startspawn"
+	ProtectionOverrides(8)="AS-Asthenosphere*;D;2;spawn2"
+	// Ballistic
+	ProtectionOverrides(9)="AS-Ballistic*;D;2;startspawn"
+	ProtectionOverrides(10)="AS-Ballistic*;A;3;secspawn"
+	ProtectionOverrides(11)="AS-Ballistic*;A;3;thspawn"
+	// GolgothaAL
+	ProtectionOverrides(12)="AS-GolgothaAL;A;3;at3"
+	ProtectionOverrides(13)="AS-GolgothaAL;A;4;at4"
+	ProtectionOverrides(14)="AS-GolgothaAL;A;4;at5"
+	ProtectionOverrides(15)="AS-GolgothaAL;A;4;at6"
 }
