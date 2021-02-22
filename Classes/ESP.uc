@@ -310,7 +310,7 @@ defaultproperties
 	ProtectionOverrides(4)="AS-DesertStorm;A;4;at1"
 	ProtectionOverrides(5)="AS-DesertStorm;D;2;def3"
 	// Asthenosphere
-	ProtectionOverrides(6)="AS-Asthenosphere*;A;4;*"
+	ProtectionOverrides(6)="AS-Asthenosphere*;A;4;"// all att spawns to 4s
 	ProtectionOverrides(7)="AS-Asthenosphere*;D;2;startspawn"
 	ProtectionOverrides(8)="AS-Asthenosphere*;D;2;spawn2"
 	// Ballistic
@@ -322,4 +322,11 @@ defaultproperties
 	ProtectionOverrides(13)="AS-GolgothaAL;A;4;at4"
 	ProtectionOverrides(14)="AS-GolgothaAL;A;4;at5"
 	ProtectionOverrides(15)="AS-GolgothaAL;A;4;at6"
+	// Riverbed3
+	ProtectionOverrides(16)="AS-Riverbed]l[*;D;2;def3"
+	ProtectionOverrides(17)="AS-Riverbed]l[*;D;2;def5"
+	ProtectionOverrides(18)="AS-Riverbed]l[*;A;4;at1"
+	ProtectionOverrides(19)="AS-Riverbed]l[*;A;3;at6"
+	//GekokujouAL][
+	ProtectionOverrides(20)="AS-GekokujouAL][*;A;3;PlayerStart"
 }
