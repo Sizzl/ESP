@@ -15,6 +15,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         repository: 'Sizzl/UT99-Server-Linux'
+        token: ${{secrets.UT99_CI_PAT}}
         ref: '469-minimal'
         path: 'ut'
     - uses: actions/checkout@v2
