@@ -1,0 +1,40 @@
+name: Unrealscript CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        repository: 'Sizzl/UT99-Server-Linux'
+        ref: '469-minimal'
+        path: 'ut'
+    - uses: actions/checkout@v2
+      with:
+        repository: 'Sizzl/LeagueAS140'
+        path: 'ut/ut-server/LeagueAS140'
+    - uses: actions/checkout@v2
+      with:
+        path: 'ut/ut-server/ESP140'
+    - name: ucc make
+      run: |
+        sed '/EditPackages=UTBrowser/ a EditPackages=LeagueAS140\nEditPackages=ESP140' ./ut/ut-server/System/Default.ini >./ut/ut-server/System/UnrealTournament.ini
+        chmod +x ./ut/ut-server/System/ucc-bin
+        ./ut/ut-server/System/ucc-bin batchexport Botpack.u CLASS UC ./ut/ut-server/Botpack/Classes/ -nohomedir
+        ./ut/ut-server/System/ucc-bin batchexport UTMenu.u CLASS UC ./ut/ut-server/UTMenu/Classes/ -nohomedir
+        cd ./ut/ut-server/System/
+        ./ucc-bin make -nohomedir
+    - name: upload artifacts
+      uses: actions/upload-artifact@v2.2.2
+      with:
+        name: ESP140
+        path: ./ut/ut-server/System/ESP140.u
+        retention-days: 1
