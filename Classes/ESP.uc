@@ -1,30 +1,32 @@
-//=====================================================================//
-// Enhanced Spawn Protection for LeagueAS ©2021 timo@utassault.net		 //
-//																																		 //
-// ProtectionOverrides adhere to the following format:								 //
-//																																		 //
-//	 AS-MapName;A|D;X;[optional tag]																	 //
-//																																		 //
-//	 - Where A is attackers or D is defenders													//
-//	 - X is protection in seconds																			//
-//	 - [optional tag] only applies to tagged playerstarts							//
-//					(empty value or * will apply to all PlayerStarts					 //
-//						for that team)																					 //
-//																																		 //
-//	 See examples in defaultproperties{} section											 //
-//																																		 //
-//=====================================================================//
+//======================================================================//
+// Enhanced Spawn Protection for LeagueAS ©2021 timo@utassault.net		//
+//																		//
+// ProtectionOverrides adhere to the following format:					//
+//																		//
+//	 AS-MapName;A|D;X;[optional tag]									//
+//																		//
+//	 - Where A is attackers or D is defenders							//
+//	 - X is protection in seconds										//
+//	 - [optional tag] only applies to tagged playerstarts				//
+//					(empty value or * will apply to all PlayerStarts	//
+//						for that team)									//
+//																		//
+//	 See examples in defaultproperties{} section						//
+//																		//
+//======================================================================//
 
 class ESP expands Mutator config;
 
-var bool Initialized, bDebug;
-var float	CheckRate;
-var string AppString, ValidAttackerOverrides[64], ValidDefenderOverrides[64]; 
+var bool Initialized;
+var float CheckRate;
+var string AppString, ValidAttackerOverrides[64], ValidDefenderOverrides[64], vATag, vDTag; 
 var int VA, VD, VC, VF;
 
 // Config
 var() config bool bEnabled;
+var() config bool bDebug;
 var() config bool bAlwaysUseDefaults;
+var() config bool bFirstRun;
 var() config int LogLevel; // 0 = No debug, 1 = Basic debug, 2 = Verbose, 3 = Trace
 var() config int ProtectAttackers;
 var() config int ProtectDefenders;
@@ -37,16 +39,25 @@ event PreBeginPlay()
 	{
 		if(Level.Game.IsA('LeagueAssault'))
 		{
-			if (bAlwaysUseDefaults)
-				StaticSaveConfig();
-			else
-				SaveConfig();
+			if (bAlwaysUseDefaults || bFirstRun)
+			{
+				log("Restoring defaults...",'ESP');
+				RestoreESPDefaults();
+				bAlwaysUseDefaults=true;
+				bFirstRun=false;
+				log("Restoring defaults complete.",'ESP');
+			}
+			SaveConfig();
 			if (LogLevel > 0)
 				bDebug = true;
 			PopulateVOs();
 			VF = VF*(1/CheckRate);
 			SetTimer(CheckRate,true);
 			log(AppString@"initialization complete. (Mode = "$String(Level.NetMode)$"; Always Use Defaults:"@bAlwaysUseDefaults$").");
+			if (bDebug)
+			{
+				log("- Debugging: true; LogLevel:"@LogLevel,'ESP');
+			}
 			Initialized = true;
 		} else {
 			log(AppString@"running, but disabled (not AS gametype).",'ESP');
@@ -63,7 +74,17 @@ event PreBeginPlay()
 		}
 	}
 }
-
+function RestoreESPDefaults()
+{
+	// Using this, since StaticSaveConfig isn't working as expected
+	local int i;
+	for (i = 0; i < 64; i++)
+	{
+		if (bDebug && LogLevel > 1 && (ProtectionOverrides[i]!="" || class'ESP_Defaults'.Default.ProtectionOverrides[i] != ""))		
+			log("Restoring current value:"@ProtectionOverrides[i]@"->"@class'ESP_Defaults'.Default.ProtectionOverrides[i],'ESP');
+		ProtectionOverrides[i] = class'ESP_Defaults'.Default.ProtectionOverrides[i];
+	}
+}
 function PopulateVOs()
 {
 	// Determine if current map has any protection overrides and store for quick usage
@@ -134,7 +155,7 @@ event Timer()
 	local LeagueAS_Inventory LASI;
 	local PlayerStart PS;
 	local int i, vDFinal, vAFinal, v;
-	local string vATag, vDTag, ValidEntry, t;
+	local string ValidEntry, t;
 
 	vDFinal = ProtectDefenders;
 	vAFinal = ProtectAttackers;
@@ -277,8 +298,14 @@ function Mutate(string MutateString, PlayerPawn Sender)
 			cVA = LASI.default.AttackerSpawnProt;
 			cVD = LASI.default.DefenderSpawnProt;
 		}
-		Sender.ClientMessage("Current attacker protection:"@cVA$"s");
-		Sender.ClientMessage("Current defender protection:"@cVD$"s");
+		Sender.ClientMessage("Current attacker protection:"@cVA$"s; current spawn point tag:"@vATag);
+		Sender.ClientMessage("Current defender protection:"@cVD$"s; current spawn point tag:"@vDTag);
+	}
+	else if (Sender.bAdmin && MutateString ~= "esp reset")
+	{
+		RestoreESPDefaults();
+		Sender.ClientMessage("Reset protection overrides to defaults.");
+		MutateString = "esp refresh";
 	}
 	else if (MutateString ~= "esp refresh")
 	{
@@ -296,37 +323,10 @@ defaultproperties
 	AppString="Enhanced Spawn Protection for LAS140:"
 	bEnabled=true
 	bAlwaysUseDefaults=false
+	bFirstRun=true
 	LogLevel=0
 	CheckRate=0.5
 	ProtectAttackers=2
 	ProtectDefenders=1
 	VF=4
-	// Bridge
-	ProtectionOverrides(0)="AS-Bridge*;D;2;PlayerStart"
-	ProtectionOverrides(1)="AS-Bridge*;A;4;sp2"
-	ProtectionOverrides(2)="AS-Bridge*;A;4;sp3"
-	// DesertStorm
-	ProtectionOverrides(3)="AS-DesertStorm;A;3;at5"
-	ProtectionOverrides(4)="AS-DesertStorm;A;4;at1"
-	ProtectionOverrides(5)="AS-DesertStorm;D;2;def3"
-	// Asthenosphere
-	ProtectionOverrides(6)="AS-Asthenosphere*;A;4;"// all att spawns to 4s
-	ProtectionOverrides(7)="AS-Asthenosphere*;D;2;startspawn"
-	ProtectionOverrides(8)="AS-Asthenosphere*;D;2;spawn2"
-	// Ballistic
-	ProtectionOverrides(9)="AS-Ballistic*;D;2;startspawn"
-	ProtectionOverrides(10)="AS-Ballistic*;A;3;secspawn"
-	ProtectionOverrides(11)="AS-Ballistic*;A;3;thspawn"
-	// GolgothaAL
-	ProtectionOverrides(12)="AS-GolgothaAL;A;3;at3"
-	ProtectionOverrides(13)="AS-GolgothaAL;A;4;at4"
-	ProtectionOverrides(14)="AS-GolgothaAL;A;4;at5"
-	ProtectionOverrides(15)="AS-GolgothaAL;A;4;at6"
-	// Riverbed3
-	ProtectionOverrides(16)="AS-Riverbed]l[*;D;2;def3"
-	ProtectionOverrides(17)="AS-Riverbed]l[*;D;2;def5"
-	ProtectionOverrides(18)="AS-Riverbed]l[*;A;4;at1"
-	ProtectionOverrides(19)="AS-Riverbed]l[*;A;3;at6"
-	//GekokujouAL][
-	ProtectionOverrides(20)="AS-GekokujouAL][*;A;3;PlayerStart"
 }
