@@ -17,7 +17,7 @@
 
 class ESP expands Mutator config;
 
-var bool Initialized;
+var bool bInitialized, bTagsFetched;
 var float CheckRate;
 var string AppString, ValidAttackerOverrides[64], ValidDefenderOverrides[64], vATag, vDTag; 
 var int VA, VD, VC, VF;
@@ -35,7 +35,7 @@ var() config string ProtectionOverrides[64]; //
 event PreBeginPlay()
 {
 
-	if(!Initialized && bEnabled)
+	if(!bInitialized && bEnabled)
 	{
 		if(Level.Game.IsA('LeagueAssault'))
 		{
@@ -58,19 +58,19 @@ event PreBeginPlay()
 			{
 				log("- Debugging: true; LogLevel:"@LogLevel,'ESP');
 			}
-			Initialized = true;
+			bInitialized = true;
 		} else {
 			log(AppString@"running, but disabled (not AS gametype).",'ESP');
-			Initialized = true;
+			bInitialized = true;
 		}
-		Initialized = true;
+		bInitialized = true;
 	}
 	else
 	{
 		if (!bEnabled)
 		{
 			log(AppString@"running, but disabled (bEnabled = false).",'ESP');
-			Initialized = true;
+			bInitialized = true;
 		}
 	}
 }
@@ -151,11 +151,35 @@ function PopulateVOs()
 	}
 
 }
-
+function GetActivePSTags()
+{
+	local PlayerStart PS;
+	foreach AllActors(Class'PlayerStart',PS)
+	{
+		if (PS.bEnabled)
+		{
+			if (PS.TeamNumber==1) // Attacker starts
+			{
+				if (Len(PS.Tag) == 0 && Len(vATag)==0)
+					vATag = "None";
+				else
+					vATag = string(PS.Tag);
+			}
+			if (PS.TeamNumber==0) // Defender starts
+			{
+				if (Len(PS.Tag) == 0 && Len(vDTag)==0)
+					vDTag = "None";
+				else
+					vDTag = string(PS.Tag);
+			}
+		}
+	}
+	bTagsFetched = true;
+}
 event Timer()
 {
 	local LeagueAS_Inventory LASI;
-	local PlayerStart PS;
+
 	local int i, vDFinal, vAFinal, v;
 	local string ValidEntry, t;
 
@@ -168,26 +192,7 @@ event Timer()
 	if (VA > 0 || VD > 0)
 	{
 		// Determine active playerstarts as there may be a valid override
-		foreach AllActors(Class'PlayerStart',PS)
-		{
-			if (PS.bEnabled)
-			{
-				if (PS.TeamNumber==1) // Attacker starts
-				{
-					if (Len(PS.Tag) == 0 && Len(vATag)==0)
-						vATag = "None";
-					else
-						vATag = string(PS.Tag);
-				}
-				if (PS.TeamNumber==0) // Defender starts
-				{
-					if (Len(PS.Tag) == 0 && Len(vDTag)==0)
-						vDTag = "None";
-					else
-						vDTag = string(PS.Tag);
-				}
-			}
-		}
+		GetActivePSTags();
 
 		if (VC > VF && LogLevel > 2)
 			log("Current Att PS tag:"@vATag$", current Def PS tag:"@vDTag,'ESP');
@@ -295,6 +300,10 @@ function Mutate(string MutateString, PlayerPawn Sender)
 	local int cVA, cVD;
 	if(MutateString~="esp")
 	{
+		if (!bTagsFetched)
+		{
+			GetActivePSTags();
+		}
 		foreach AllActors(Class'LeagueAS_Inventory',LASI)
 		{
 			cVA = LASI.default.AttackerSpawnProt;
