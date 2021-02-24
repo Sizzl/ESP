@@ -78,6 +78,8 @@ function RestoreESPDefaults()
 {
 	// Using this, since StaticSaveConfig isn't working as expected
 	local int i;
+	ProtectAttackers = class'ESP_Defaults'.Default.ProtectAttackers;
+	ProtectDefenders = class'ESP_Defaults'.Default.ProtectDefenders;
 	for (i = 0; i < 64; i++)
 	{
 		if (bDebug && LogLevel > 1 && (ProtectionOverrides[i]!="" || class'ESP_Defaults'.Default.ProtectionOverrides[i] != ""))		

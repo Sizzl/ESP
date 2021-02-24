@@ -1,9 +1,11 @@
 class ESP_Defaults expands Actor config;
-
+var int ProtectAttackers, ProtectDefenders;
 var config string ProtectionOverrides[64];
 
 defaultproperties
 {
+	ProtectAttackers=2
+	ProtectDefenders=1
 	ProtectionOverrides(0)="AS-Bridge*;D;2;PlayerStart"
 	ProtectionOverrides(1)="AS-Bridge*;A;4;sp2"
 	ProtectionOverrides(2)="AS-Bridge*;A;4;sp3"
