@@ -17,13 +17,15 @@
 
 class ESP expands Mutator config;
 
-var bool bInitialized, bTagsFetched;
+var bool bInitialized, bTagsFetched, bSNSpawned;
 var float CheckRate;
 var string AppString, ValidAttackerOverrides[64], ValidDefenderOverrides[64], vATag, vDTag; 
 var int VA, VD, VC, VF;
+var ESP_SN SN;
 
 // Config
 var() config bool bEnabled;
+var() config bool bNoClipProtection;
 var() config bool bDebug;
 var() config bool bAlwaysUseDefaults;
 var() config bool bFirstRun;
@@ -74,6 +76,16 @@ event PreBeginPlay()
 		}
 	}
 }
+
+event PostBeginPlay()
+{
+	if (bNoClipProtection)
+	{
+		SN = Spawn(class'ESP_SN');
+		SN.Mutator = self;
+	}
+}
+
 function RestoreESPDefaults()
 {
 	// Using this, since StaticSaveConfig isn't working as expected
@@ -144,7 +156,7 @@ function PopulateVOs()
 				if (bDebug && LogLevel > 1)
 					log("Adding Defender override:"@ValidEntry,'ESP');
 
-				ValidDefenderOverrides[VA] = ValidEntry;
+				ValidDefenderOverrides[VD] = ValidEntry;
 				VD++;
 			}
 		}
@@ -203,34 +215,42 @@ event Timer()
 			{
 				ValidEntry = ValidAttackerOverrides[i];
 				t="";
-				if (InStr(ValidEntry, ";") > 0)
+				if (Len(ValidEntry) > 0)
 				{
-					v = int(Left(ValidEntry,InStr(ValidEntry, ";")));
-					t = Mid(ValidEntry,InStr(ValidEntry, ";")+1);
-				}
-				else
-				{
-					v = int(ValidEntry);
-				}
-				if (VC > VF && LogLevel > 2)
-					log("Qualifying VA entry:"@ValidEntry$", v="$v$",t="$t,'ESP');
+					if (InStr(ValidEntry, ";") > 0)
+					{
+						v = int(Left(ValidEntry,InStr(ValidEntry, ";")));
+						t = Mid(ValidEntry,InStr(ValidEntry, ";")+1);
+					}
+					else
+					{
+						v = int(ValidEntry);
+					}
+					if (VC > VF && LogLevel > 2)
+						log("Qualifying VA entry:"@ValidEntry$", v="$v$",t="$t,'ESP');
 
-				if (Len(t) > 0 && vATag ~= t || t=="*")
-				{
-					if (VC > VF && LogLevel > 2)
-						log("Overriding tagged vAFinal:"@vAFinal@"->"@v,'ESP');
-					vAFinal = v;
-					break; // treat this value as final
-				}
-				else if (Len(t)==0)
-				{
-					if (VC > VF && LogLevel > 2)
-						log("Overriding untagged vAFinal:"@vAFinal@"->"@v,'ESP');
-					vAFinal = v;
-				}
+					if (Len(t) > 0 && vATag ~= t || t=="*")
+					{
+						if (VC > VF && LogLevel > 2)
+							log("Overriding tagged vAFinal:"@vAFinal@"->"@v,'ESP');
+						vAFinal = v;
+						break; // treat this value as final
+					}
+					else if (Len(t)==0)
+					{
+						if (VC > VF && LogLevel > 2)
+							log("Overriding untagged vAFinal:"@vAFinal@"->"@v,'ESP');
+						vAFinal = v;
+					}
+					else
+					{
+						// do nothing
+					}
+								}
 				else
 				{
-					// do nothing
+					if (VC > VF && LogLevel > 0)
+						log("Blank cached VOs exist for Defenders. Check config and handling.",'ESP');
 				}
 			}
 		}
@@ -240,33 +260,41 @@ event Timer()
 			{
 				ValidEntry = ValidDefenderOverrides[i];
 				t = "";
-				if (InStr(ValidEntry, ";") > 0)
+				if (Len(ValidEntry) > 0)
 				{
-					v = int(Left(ValidEntry,InStr(ValidEntry, ";")));
-					t = Mid(ValidEntry,InStr(ValidEntry, ";")+1);
+					if (InStr(ValidEntry, ";") > 0)
+					{
+						v = int(Left(ValidEntry,InStr(ValidEntry, ";")));
+						t = Mid(ValidEntry,InStr(ValidEntry, ";")+1);
+					}
+					else
+					{
+						v = int(ValidEntry);
+					}
+					if (VC > VF && LogLevel > 2)
+						log("Qualifying VD entry:"@ValidEntry$", v="$v$",t="$t,'ESP');
+					if (Len(t) > 0 && vDTag ~= t || t=="*")
+					{
+						if (VC > VF && LogLevel > 2)
+							log("Overriding tagged vDFinal:"@vDFinal@"->"@v,'ESP');
+						vDFinal = v;
+						break; // treat this value as final
+					}
+					else if (Len(t)==0)
+					{
+						if (VC > VF && LogLevel > 2)
+							log("Overriding untagged vDFinal:"@vDFinal@"->"@v,'ESP');
+						vDFinal = v;
+					}
+					else
+					{
+						// do nothing
+					}
 				}
 				else
 				{
-					v = int(ValidEntry);
-				}
-				if (VC > VF && LogLevel > 2)
-					log("Qualifying VD entry:"@ValidEntry$", v="$v$",t="$t,'ESP');
-				if (Len(t) > 0 && vDTag ~= t || t=="*")
-				{
-					if (VC > VF && LogLevel > 2)
-						log("Overriding tagged vDFinal:"@vDFinal@"->"@v,'ESP');
-					vDFinal = v;
-					break; // treat this value as final
-				}
-				else if (Len(t)==0)
-				{
-					if (VC > VF && LogLevel > 2)
-						log("Overriding untagged vDFinal:"@vDFinal@"->"@v,'ESP');
-					vDFinal = v;
-				}
-				else
-				{
-					// do nothing
+					if (VC > VF && LogLevel > 0)
+						log("Blank cached VOs exist for Defenders. Check config and handling.",'ESP');
 				}
 			}
 		}
@@ -318,6 +346,25 @@ function Mutate(string MutateString, PlayerPawn Sender)
 		Sender.ClientMessage("Reset protection overrides to defaults.");
 		MutateString = "esp refresh";
 	}
+	else if (Sender.bAdmin && Left(MutateString,15) ~= "esp toggle clip")
+	{
+		bNoClipProtection = !bNoClipProtection;
+		SaveConfig();
+		if (bNoClipProtection)
+		{
+			if (!bSNSpawned)
+			{
+				Sender.ClientMessage("NoClip style spawn protection is now enabled; spawning inventory hook...");
+				PostBeginPlay();
+			}
+			else
+				Sender.ClientMessage("NoClip style spawn protection is now enabled.");
+		}
+		else
+			Sender.ClientMessage("NoClip style spawn protection is now disabled.");
+		
+	}
+
 	else if (MutateString ~= "esp refresh")
 	{
 		PopulateVOs();
@@ -333,6 +380,7 @@ defaultproperties
 {
 	AppString="Enhanced Spawn Protection for LAS140:"
 	bEnabled=true
+	bNoClipProtection=false
 	bAlwaysUseDefaults=false
 	bFirstRun=true
 	LogLevel=0
